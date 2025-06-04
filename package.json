@@ -1,0 +1,14 @@
+{
+  "name": "posture",
+  "version": "1.0.0",
+  "description": "analyze people's posture and correct it",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "posture"
+  ],
+  "author": "Grace Yang",
+  "license": "ISC"
+}
