@@ -7,9 +7,10 @@ function MyButton() {
 
   return (
     <button onClick={handleClick}>
-      Click Me
+      Camera
     </button>
   );
 }
+
 
 export default MyButton;
