@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const Dropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState('Select an option');
+  const [selected, setSelected] = useState('Select Instrument');
 
   const options = ['Violin', 'Piano', 'Guitar', 'Flute', 'Drums', 'Saxophone'];
 
