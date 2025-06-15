@@ -10,6 +10,7 @@ const Nav = () => {
             <div className={styles['logo-container']}>
                 <span><img src={postureLogo} width="250" height="75" alt="Logo" /></span>
             </div>
+            <Dropdown />
             <div className={styles['links-container']}>
                 <div className={styles['link']}>
                     <Link to="/Home">Home</Link>
