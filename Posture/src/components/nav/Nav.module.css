@@ -35,3 +35,10 @@
     text-decoration: none;
     color: rgba(14, 34, 14, 0.8);
 }
+
+.instrumentSelector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 20px; 
+}
