@@ -10,5 +10,8 @@
     "posture"
   ],
   "author": "Grace Yang",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "firebase": "^11.9.1"
+  }
 }
