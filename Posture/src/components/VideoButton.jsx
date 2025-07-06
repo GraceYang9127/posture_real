@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { uploadToS3 } from "../utils/uploadS3"; // Make sure the path is correct
+import { uploadToS3 } from "../utils/uploadS3"; 
 import { auth } from "../firebase";
 
 function VideoButton() {
@@ -19,7 +19,7 @@ function VideoButton() {
     setUploadStatus("Uploading...");
 
     try {
-      const userId = auth.currentUser?.uid || "anonymous"; // fallback if not logged in
+      const userId = auth.currentUser?.uid || "anonymous"; 
       const s3Key = await uploadToS3(file, userId);
       console.log("✅ Uploaded to S3:", s3Key);
       setUploadStatus("✅ Upload complete");

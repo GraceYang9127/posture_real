@@ -11,10 +11,6 @@ const s3 = new S3Client({
 export const uploadToS3 = async (file, userId) => {
   const key = `videos/${userId}/${Date.now()}_${file.name}`;
 
-  console.log("🟢 Uploading to bucket:", import.meta.env.VITE_AWS_BUCKET_NAME);
-  console.log("🟢 File:", file);
-  console.log("🟢 Key:", key);
-
   const command = new PutObjectCommand({
     Bucket: import.meta.env.VITE_AWS_BUCKET_NAME,
     Key: key,
