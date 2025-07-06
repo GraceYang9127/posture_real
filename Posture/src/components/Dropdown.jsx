@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Dropdown = ({ selected, setSelected }) => {  // receive selected & setSelected as props
+const Dropdown = ({ selected, setSelected }) => { 
   const [isOpen, setIsOpen] = useState(false);
 
   const options = ['Violin', 'Piano', 'Guitar', 'Flute', 'Drums', 'Saxophone'];
@@ -29,7 +29,7 @@ const Dropdown = ({ selected, setSelected }) => {  // receive selected & setSele
             <li
               key={option}
               onClick={() => {
-                setSelected(option);  // update selected in Nav.jsx
+                setSelected(option);
                 setIsOpen(false);
               }}
               style={{ padding: '5px 10px', cursor: 'pointer' }}

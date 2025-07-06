@@ -1,57 +1,48 @@
-import React, { useRef, useState } from 'react';
-import { uploadToS3 } from '../utils/uploadS3';
-import { getAuth } from 'firebase/auth';
-import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import React, { useRef, useState } from "react";
+import { uploadToS3 } from "../utils/uploadS3"; // Make sure the path is correct
+import { auth } from "../firebase";
 
 function VideoButton() {
-    const fileInputRef = useRef(null);
-    const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState("");
 
-    const handleButtonClick = () => {
-        fileInputRef.current.click();
-    };
+  const handleButtonClick = () => {
+    fileInputRef.current.click();
+  };
 
-const handleFileChange = async (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
-    setSelectedFile(file);
+    if (!file) return;
 
-    const user = getAuth().currentUser;
-    if (!user) {
-        alert("You must be logged in to upload.");
-        return;
-    }
+    setSelectedFile(file);
+    setUploadStatus("Uploading...");
 
     try {
-        const s3Key = await uploadToS3(file, user.uid);
-
-        await addDoc(collection(db, 'videos'), {
-            userId: user.uid,
-            s3Key,
-            originalFilename: file.name,
-            timestamp: Date.now(),
-        });
-
-        alert("Upload successful!");
-    } catch (err) {
-        console.error("Error uploading:", err);
-        alert("Upload failed.");
+      const userId = auth.currentUser?.uid || "anonymous"; // fallback if not logged in
+      const s3Key = await uploadToS3(file, userId);
+      console.log("✅ Uploaded to S3:", s3Key);
+      setUploadStatus("✅ Upload complete");
+    } catch (error) {
+      console.error("❌ Upload failed:", error);
+      setUploadStatus("❌ Upload failed");
     }
-};
+  };
 
-    return (
-        <div>
-            <button onClick={handleButtonClick}>Upload Video</button>
-            <input 
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-                accept="video/*"
-            />
-            {selectedFile && <p>Selected file: {selectedFile.name}</p>}
-        </div>
-    );
+  return (
+    <div>
+      <button onClick={handleButtonClick}>Upload Video</button>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+        accept="video/*"
+      />
+      {selectedFile && <p>Selected file: {selectedFile.name}</p>}
+      {uploadStatus && <p>{uploadStatus}</p>}
+    </div>
+  );
 }
 
 export default VideoButton;
