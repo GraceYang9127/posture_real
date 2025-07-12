@@ -21,11 +21,9 @@ function VideoButton() {
     try {
       const userId = auth.currentUser?.uid || "anonymous"; 
       const s3Key = await uploadToS3(file, userId);
-      console.log("✅ Uploaded to S3:", s3Key);
-      setUploadStatus("✅ Upload complete");
+      setUploadStatus("Upload complete");
     } catch (error) {
-      console.error("❌ Upload failed:", error);
-      setUploadStatus("❌ Upload failed");
+      setUploadStatus("Upload failed");
     }
   };
 
