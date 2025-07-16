@@ -8,7 +8,6 @@ app = Flask(__name__)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-
 @app.route('/get_blurb', methods=['POST'])
 def get_blurb():
    data = request.json
