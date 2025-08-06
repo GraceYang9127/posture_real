@@ -13,30 +13,29 @@ const Nav = () => {
   const [user, setUser] = useState(null);
   const [selectedInstrument, setSelectedInstrument] = useState("Select Instrument");
 
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
   
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    setUser(currentUser);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
 
-    if (currentUser) {
-      const docRef = doc(db, "users", currentUser.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.instrument) setSelectedInstrument(data.instrument);
+      if (currentUser) {
+        const docRef = doc(db, "users", currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.instrument) setSelectedInstrument(data.instrument);
+        }
+      } else {
+        setSelectedInstrument("Select Instrument");  // Reset on logout
       }
-    } else {
-      setSelectedInstrument("Select Instrument");  // Reset on logout
-    }
-  });
+    });
 
-  return () => unsubscribe();
-}, []);
+    return () => unsubscribe();
+  }, []);
 
   return (
     <nav className={styles.navbar}>
@@ -46,14 +45,12 @@ useEffect(() => {
         </span>
       </div>
 
-
-    {user && (
+      {user && (
         <div className={styles.instrumentSelector}>
-            <Dropdown selected={selectedInstrument} setSelected={setSelectedInstrument} />
-            <SetAsDefault selected={selectedInstrument} />
+          <Dropdown selected={selectedInstrument} setSelected={setSelectedInstrument} />
+          <SetAsDefault selected={selectedInstrument} />
         </div>
-    )}
-
+      )}
 
       <div className={styles['links-container']}>
         {user && (
@@ -63,6 +60,9 @@ useEffect(() => {
             </div>
             <div className={styles['link']}>
               <Link to="/Camera">Camera</Link>
+            </div>
+            <div className={styles['link']}>
+              <Link to="/Chat">AI Chatbox</Link>  {/* ✅ New AI Chatbox link */}
             </div>
           </>
         )}
