@@ -59,9 +59,6 @@ export function checkBackPosture(landmarks){
 
     const verticalCheck = isBackStraight(landmarks);
     const angleCheck = isBackStraightByAngle(landmarks);
-
-    console.log('Vertical check:', verticalCheck, 'Angle check:', angleCheck);
-
     return verticalCheck && angleCheck;
 }
 
