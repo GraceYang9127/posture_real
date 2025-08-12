@@ -39,7 +39,6 @@ function isBackStraightByAngle(landmarks){
     if (!leftShoulder || !leftHip || !leftKnee) return false;
 
     const torsoAngle = angleBetweenPoints(leftShoulder, leftHip, leftKnee);
-    console.log('Torso angle:', torsoAngle);
     return torsoAngle >= 90 && torsoAngle <= 100;
 }
 
@@ -53,7 +52,6 @@ function isBackStraight(landmarks) {
 
     const lSlope = Math.abs(lShoulder.y - lHip.y);
     const rSlope = Math.abs(rShoulder.y - rHip.y);
-    console.log('Left slope:', lSlope, "Right slope:", rSlope);
     return lSlope < 0.5 && rSlope < 0.5;
 }
 
