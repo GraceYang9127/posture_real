@@ -1,22 +1,33 @@
 import { POSE_LANDMARKS } from "@mediapipe/pose";
 
-const requiredLandmarks = [
-    'leftHip',
-    'rightHip',
-    'leftShoulder',
-    'rightShoulder',
-    'leftKnee',
-    'rightKnee'
+const leftSideLandmarks = [
+  POSE_LANDMARKS.LEFT_HIP,
+  POSE_LANDMARKS.LEFT_SHOULDER,
+  POSE_LANDMARKS.LEFT_KNEE
 ];
+
+const rightSideLandmarks = [
+  POSE_LANDMARKS.RIGHT_HIP,
+  POSE_LANDMARKS.RIGHT_SHOULDER,
+  POSE_LANDMARKS.RIGHT_KNEE
+];
+
+function isSideVisible(landmarks, sideLandmarks) {
+  return sideLandmarks.every(index => {
+    const lm = landmarks[index];
+    return lm && lm.visibility !== undefined && lm.visibility > 0.5;
+  });
+}
 
 export function checkRequiredLandmarks(landmarks) {
   if (!landmarks) return false;
 
-  return requiredLandmarks.every(index => {
-    const lm = landmarks[index];
-    return lm && lm.visibility !== undefined;
-  });
+  const leftVisible = isSideVisible(landmarks, leftSideLandmarks);
+  const rightVisible = isSideVisible(landmarks, rightSideLandmarks);
+
+  return leftVisible || rightVisible;
 }
+
 
 function angleBetweenPoints(A, B, C) {
   const AB = { x: B.x - A.x, y: B.y - A.y };
@@ -62,5 +73,12 @@ export function checkBackPosture(landmarks){
     return verticalCheck && angleCheck;
 }
 
+function isHeadAligned(landmarks){
+    const leftEar = landmarks[POSE_LANDMARKS.LEFT_EAR];
+    const rightEar = landmarks[POSE_LANDMARKS.RIGHT_EAR];
+    const leftShoulder =landmarks[POSE_LANDMARKS.LEFT_SHOULDER];
+    const rightShoulder = landmakrs[POSE_LANDMARKS.RIGHT_SHOULDER];
+    
 
+}
 
