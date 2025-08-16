@@ -5,7 +5,7 @@ import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import * as mpPose from "@mediapipe/pose";
 import { checkBackPosture, checkRequiredLandmarks } from "../utils/poseUtils";
 
-export default function LivePose({ pose }) {
+export default function LivePose() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -26,7 +26,7 @@ export default function LivePose({ pose }) {
 
     pose.onResults(onResults);
 
-    if (typeof videoRef.current !== "undefined" && videoRef.current !== null) {
+    if (videoRef.current) {
       const camera = new Camera(videoRef.current, {
         onFrame: async () => {
           await pose.send({ image: videoRef.current });
@@ -56,12 +56,20 @@ export default function LivePose({ pose }) {
         lineWidth: 2,
       });
 
-      const backStraight = checkBackPosture(results.poseLandmarks);
+      const hasAllLandmarks = checkRequiredLandmarks(results.poseLandmarks);
 
-      canvasCtx.fillStyle = backStraight ? "green" : "red";
-      canvasCtx.font = "24px Arial";
-      canvasCtx.fillText(backStraight ? "Back straight" : "Back bent", 20, 40);
+      if (!hasAllLandmarks) {
+        canvasCtx.fillStyle = "yellow";
+        canvasCtx.font = "24px Arial";
+        canvasCtx.fillText("Please have full body in picture", 20, 40);
+      } else {
+        const backStraight = checkBackPosture(results.poseLandmarks);
+        canvasCtx.fillStyle = backStraight ? "green" : "red";
+        canvasCtx.font = "24px Arial";
+        canvasCtx.fillText(backStraight ? "Back straight" : "Back bent", 20, 40);
+      }
     }
+
     canvasCtx.restore();
   }
 
