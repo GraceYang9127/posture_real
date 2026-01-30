@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
-import { uploadToS3 } from "../utils/uploadS3"; 
-import { auth } from "../firebase";
+import { uploadFile } from "../utils/uploadFile";
 
 function VideoButton() {
   const fileInputRef = useRef(null);
@@ -19,8 +18,7 @@ function VideoButton() {
     setUploadStatus("Uploading...");
 
     try {
-      const userId = auth.currentUser?.uid || "anonymous"; 
-      const s3Key = await uploadToS3(file, userId);
+      const objectKey = await uploadFile(file);
       setUploadStatus("Upload complete");
     } catch (error) {
       setUploadStatus("Upload failed");
