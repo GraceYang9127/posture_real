@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import styles from "./Nav.module.css";
 import postureLogo from "../../assets/images/postureLogo.png";
-import { Link } from "react-router-dom";
-import Dropdown from '../Dropdown.jsx';
+import { Link, useLocation } from "react-router-dom";
+import Dropdown from "../Dropdown.jsx";
 import { auth } from "../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import SetAsDefault from "../SetAsDefault.jsx";
@@ -12,12 +12,8 @@ import { db } from "../../firebase";
 const Nav = () => {
   const [user, setUser] = useState(null);
   const [selectedInstrument, setSelectedInstrument] = useState("Select Instrument");
+  const location = useLocation();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
@@ -30,42 +26,57 @@ const Nav = () => {
           if (data.instrument) setSelectedInstrument(data.instrument);
         }
       } else {
-        setSelectedInstrument("Select Instrument");  // Reset on logout
+        setSelectedInstrument("Select Instrument");
       }
     });
 
     return () => unsubscribe();
   }, []);
 
+  const isActive = (path) => location.pathname === path;
+
   return (
     <nav className={styles.navbar}>
-      <div className={styles['logo-container']}>
-        <span>
-          <img src={postureLogo} width="250" height="75" alt="Logo" />
-        </span>
+      {/* LEFT: Logo */}
+      <div className={styles.logoContainer}>
+        <img src={postureLogo} alt="PostureMind Logo" />
       </div>
 
+      {/* CENTER: Instrument selector */}
       {user && (
-        <div className={styles.instrumentSelector}>
-          <Dropdown selected={selectedInstrument} setSelected={setSelectedInstrument} />
+        <div className={styles.instrumentWrapper}>
+          <Dropdown
+            selected={selectedInstrument}
+            setSelected={setSelectedInstrument}
+          />
           <SetAsDefault selected={selectedInstrument} />
         </div>
       )}
 
-      <div className={styles['links-container']}>
+      {/* RIGHT: Navigation links */}
+      <div className={styles.linksContainer}>
         {user && (
           <>
-            <div className={styles['link']}>
-              <Link to="/Home">Home</Link>
-            </div>
-            <div className={styles['link']}>
-              <Link to="/Camera">Camera</Link>
-            </div>
+            <Link
+              to="/Home"
+              className={`${styles.link} ${isActive("/Home") ? styles.active : ""}`}
+            >
+              Home
+            </Link>
+            <Link
+              to="/Camera"
+              className={`${styles.link} ${isActive("/Camera") ? styles.active : ""}`}
+            >
+              Camera
+            </Link>
           </>
         )}
-        <div className={styles['link']}>
-          <Link to="/SignIn">{user ? "Profile" : "Sign In"}</Link>
-        </div>
+        <Link
+          to="/SignIn"
+          className={`${styles.link} ${isActive("/SignIn") ? styles.active : ""}`}
+        >
+          {user ? "Profile" : "Sign In"}
+        </Link>
       </div>
     </nav>
   );
