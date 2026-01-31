@@ -61,9 +61,6 @@ const Nav = () => {
             <div className={styles['link']}>
               <Link to="/Camera">Camera</Link>
             </div>
-            <div className={styles['link']}>
-              <Link to="/Chat">AI Chatbox</Link>  {/* ✅ New AI Chatbox link */}
-            </div>
           </>
         )}
         <div className={styles['link']}>
