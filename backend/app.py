@@ -51,9 +51,11 @@ def test_cors():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.json
-    print("Received data:", data.get('messages', []))  # Debugging 
-    messages = data.get('messages', [])
+    data = request.json or {}
+    messages = data.get('messages')
+
+    if not messages:
+        return jsonify({"error": "No messages provided"}), 400
 
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -61,28 +63,50 @@ def chat():
     }
 
     payload = {
-        "model": "llama3-70b-8192",
+        "model":"llama-3.1-8b-instant",
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": 300
     }
 
-    response = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=headers,
-        json=payload
-    )
-    
-    #debugging
-    print("PI status:", response.status_code
-          )
-    print("PI response:", response.text)
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
 
-    if response.status_code == 200:
-        content = response.json()['choices'][0]['message']['content']
-        return jsonify({'reply': content})
-    else:
-        return jsonify({'error': 'API call failed', 'details': response.text}), 500
+        print("PI status:", response.status_code)
+        print("PI response:", response.text)
+
+        if response.status_code != 200:
+            return jsonify({
+                "error": "Groq API error",
+                "details": response.text
+            }), 500
+
+        response_json = response.json()
+
+        # 🔐 Defensive parsing (THIS is the fix)
+        if (
+            "choices" not in response_json or
+            not response_json["choices"] or
+            "message" not in response_json["choices"][0] or
+            "content" not in response_json["choices"][0]["message"]
+        ):
+            return jsonify({
+                "error": "Invalid response format from Groq",
+                "raw": response_json
+            }), 500
+
+        content = response_json["choices"][0]["message"]["content"]
+
+        return jsonify({"reply": content})
+
+    except Exception as e:
+        print("Server error:", str(e))
+        return jsonify({"error": "Server exception", "details": str(e)}), 500
 
 
 if __name__ == '__main__':
