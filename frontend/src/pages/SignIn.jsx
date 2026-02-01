@@ -93,7 +93,7 @@ function SignIn() {
               marginBottom: 8,
             }}
           >
-            🧍‍♂️
+            🎶
           </div>
           <h2 style={{ margin: 0 }}>
             {currentUser ? "Your Profile" : "Welcome"}
@@ -147,7 +147,7 @@ function SignIn() {
                 padding: "12px 0",
                 borderRadius: 12,
                 border: "none",
-                background: "#e74c3c",
+                background: "#559adb",
                 color: "#fff",
                 fontWeight: 600,
                 cursor: "pointer",
@@ -214,7 +214,7 @@ function SignIn() {
                   padding: "12px 0",
                   borderRadius: 12,
                   border: "none",
-                  background: "#4f46e5",
+                  background: "#559adb",
                   color: "#fff",
                   fontWeight: 600,
                   cursor: "pointer",
@@ -229,9 +229,9 @@ function SignIn() {
                   flex: 1,
                   padding: "12px 0",
                   borderRadius: 12,
-                  border: "1px solid #4f46e5",
+                  border: "1px solid #559adb",
                   background: "#fff",
-                  color: "#4f46e5",
+                  color: "#559adb",
                   fontWeight: 600,
                   cursor: "pointer",
                 }}

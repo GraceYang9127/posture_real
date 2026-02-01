@@ -39,7 +39,7 @@ const Nav = () => {
     <nav className={styles.navbar}>
       {/* LEFT: Logo */}
       <div className={styles.logoContainer}>
-        <img src={postureLogo} alt="PostureMind Logo" />
+        <img src={postureLogo} alt="Musalytic Logo" />
       </div>
 
       {/* CENTER: Instrument selector */}

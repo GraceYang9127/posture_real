@@ -51,7 +51,7 @@ const Home = () => {
           {/* Text */}
           <div style={{ flex: 1, minWidth: 280 }}>
             <h1 style={{ marginBottom: 8 }}>
-              Welcome to PostureMind
+              Welcome to Musalytic!
             </h1>
 
             <p
