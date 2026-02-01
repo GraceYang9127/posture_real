@@ -17,11 +17,11 @@ const Dropdown = ({ selected, setSelected }) => {
             listStyle: 'none',
             margin: 0,
             padding: '10px',
-            border: '1px solid #ccc',
+            border: '1px solid #ffffff',
             backgroundColor: 'white',
             position: 'absolute',
             width: '100%',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+            boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15)',
             zIndex: 999,
           }}
         >
