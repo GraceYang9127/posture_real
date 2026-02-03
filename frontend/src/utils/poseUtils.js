@@ -63,7 +63,7 @@ function isBackStraight(landmarks) {
 
     const lSlope = Math.abs(lShoulder.y - lHip.y);
     const rSlope = Math.abs(rShoulder.y - rHip.y);
-    return lSlope < 0.5 && rSlope < 0.5;
+    return lSlope < 0.5 || rSlope < 0.5;
 }
 
 export function checkBackPosture(landmarks){
@@ -81,4 +81,3 @@ function isHeadAligned(landmarks){
     
 
 }
-
