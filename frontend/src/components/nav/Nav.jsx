@@ -69,6 +69,12 @@ const Nav = () => {
             >
               Camera
             </Link>
+            <Link
+              to="/History"
+              className={`${styles.link} ${isActive("/History") ? styles.active : ""}`}
+            >
+              History
+            </Link>
           </>
         )}
         <Link

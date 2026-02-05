@@ -10,9 +10,10 @@ export default function LivePose({ onStream }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    let camera;
+    let camera = null;
+    let pose = null;
 
-    const pose = new Pose({
+    pose = new Pose({
       locateFile: (file) => {
         if (!file) return undefined;
 
@@ -40,16 +41,22 @@ export default function LivePose({ onStream }) {
 
       camera = new Camera(videoRef.current, {
         onFrame: async () => {
+          if (
+            !videoRef.current ||
+            videoRef.current.videoWidth === 0 ||
+            videoRef.current.videoHeight === 0
+          ) {
+            return;
+          }
+
           await pose.send({ image: videoRef.current });
         },
-        width: 900,
-        height: 600,
+
       });
 
       await camera.start();
 
       /**
-       * IMPORTANT:
        * Instead of exposing the raw webcam stream,
        * we expose the CANVAS stream so recordings include:
        * - camera image
@@ -69,14 +76,24 @@ export default function LivePose({ onStream }) {
 
     return () => {
       try {
+        if (camera) {
+          camera.stop();
+          camera = null;
+        }
+
+        if (pose) {
+          pose.close();
+          pose = null;
+        }
+
         const stream = videoRef.current?.srcObject;
         if (stream && stream.getTracks) {
           stream.getTracks().forEach((t) => t.stop());
         }
       } catch (e) {
-        // ignore cleanup errors
       }
     };
+
   }, [onStream]);
 
   function onResults(results) {
@@ -88,14 +105,40 @@ export default function LivePose({ onStream }) {
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-    // Draw the camera image onto the canvas
+    const videoWidth = results.image.width;
+    const videoHeight = results.image.height;
+
+    const canvasWidth = canvasElement.width;
+    const canvasHeight = canvasElement.height;
+
+    const videoAspect = videoWidth / videoHeight;
+    const canvasAspect = canvasWidth / canvasHeight;
+
+    let srcX = 0;
+    let srcY = 0;
+    let srcW = videoWidth;
+    let srcH = videoHeight;
+
+    if (videoAspect > canvasAspect) {
+      srcW = videoHeight * canvasAspect;
+      srcX = (videoWidth - srcW) / 2;
+    } else {
+      srcH = videoWidth / canvasAspect;
+      srcY = (videoHeight - srcH) / 2;
+    }
+
     canvasCtx.drawImage(
       results.image,
+      srcX,
+      srcY,
+      srcW,
+      srcH,
       0,
       0,
-      canvasElement.width,
-      canvasElement.height
+      canvasWidth,
+      canvasHeight
     );
+
 
     if (results.poseLandmarks) {
       drawConnectors(

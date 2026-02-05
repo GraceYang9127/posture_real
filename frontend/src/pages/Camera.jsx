@@ -10,8 +10,7 @@ export default function Camera() {
       style={{
         minHeight: "100vh",
         padding: "40px 20px",
-        background:
-          "linear-gradient(180deg, #f7f8fb 0%, #eef1f6 100%)",
+        background: "linear-gradient(180deg, #f7f8fb 0%, #eef1f6 100%)",
         display: "flex",
         justifyContent: "center",
       }}
@@ -44,12 +43,10 @@ export default function Camera() {
           {/* Live Camera */}
           <div
             style={{
-              background:
-                "linear-gradient(180deg, #111 0%, #000 100%)",
+              background: "linear-gradient(180deg, #111 0%, #000 100%)",
               borderRadius: 20,
               padding: 16,
-              boxShadow:
-                "0 20px 40px rgba(0,0,0,0.25)",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
             }}
           >
             <div
@@ -80,29 +77,9 @@ export default function Camera() {
               background: "#fff",
               borderRadius: 20,
               padding: 20,
-              boxShadow:
-                "0 10px 30px rgba(0,0,0,0.1)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
             }}
           >
-            <div>
-              <h2 style={{ marginBottom: 4 }}>
-                Recording & Upload
-              </h2>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  color: "#666",
-                }}
-              >
-                Record from your camera or upload an existing
-                video
-              </p>
-            </div>
-
             <CameraRecording stream={stream} />
           </div>
         </div>
