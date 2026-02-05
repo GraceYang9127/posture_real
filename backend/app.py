@@ -27,6 +27,39 @@ s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
 
 analysis_events = {}
 
+# ---------- DOWNLOAD URL ----------
+@app.route("/api/download-url", methods=["POST", "OPTIONS"])
+def create_download_url():
+    if request.method == "OPTIONS":
+        return "", 200
+
+    data = request.json or {}
+    user_id = data.get("userId")
+    object_key = data.get("key")
+
+    if not user_id or not object_key:
+        return jsonify({"error": "Missing userId or key"}), 400
+
+    allowed_prefixes = [
+        f"videos/{user_id}/",
+        f"analysis/{user_id}/",
+    ]
+
+    if not any(object_key.startswith(p) for p in allowed_prefixes):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    download_url = s3.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": AWS_BUCKET,
+            "Key": object_key,
+        },
+        ExpiresIn=600,
+    )
+
+    return jsonify({ "downloadUrl": download_url })
+
+
 # ---------- UPLOAD URL ----------
 @app.route("/api/upload-url", methods=["POST"])
 def create_upload_url():
