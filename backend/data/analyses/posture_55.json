@@ -1,0 +1,48 @@
+{
+  "video_id": "51c9ac78a3573387e346f16502bba816",
+  "instrument": "Piano",
+  "created_at": "2026-02-07T22:15:33.719533",
+  "overall_score": 55,
+  "weak_label": "Okay",
+  "feature_vector": {
+    "head_angle_mean_deg": 144.107209,
+    "head_angle_var": 27.376561,
+    "torso_angle_mean_deg": 178.305632,
+    "head_dev_deg": 18.892791,
+    "torso_dev_deg": 0.694368,
+    "stability_std_dev_deg": 5.232262,
+    "pose_coverage": 0.5,
+    "pose_coverage_sampled": 1.0,
+    "session_duration_sec": 6.6066,
+    "sampled_frames": 99.0,
+    "frames_with_pose": 99.0
+  },
+  "metrics": {
+    "head_angle_mean_deg": 144.11,
+    "torso_angle_mean_deg": 178.31,
+    "head_dev_deg": 18.89,
+    "torso_dev_deg": 0.69,
+    "stability_std_dev_deg": 5.232,
+    "pose_coverage": 0.5,
+    "pose_coverage_sampled": 1.0
+  },
+  "feedback": [
+    "Maintain neutral head alignment to reduce neck strain.",
+    "Keep torso upright with relaxed shoulders.",
+    "Consistent posture improves long-term comfort and performance."
+  ],
+  "metadata": {
+    "analysis_version": "mediapipe-calibrated-v3",
+    "pose_confidence": 0.35,
+    "frame_sample_rate": 2,
+    "total_frames": 198,
+    "fps": 29.97,
+    "duration_sec": 6.607,
+    "sampled_frames": 99,
+    "frames_with_pose": 99,
+    "pose_detected": true
+  },
+  "title": "Bad Example",
+  "videoKey": "videos/fsj05pza0vhVh62wdUZ9ApJee9s2/c0600c5e-1f1e-44c1-acfc-b29440b80ed1_recording-1770502524593.video",
+  "analysisKey": "analysis/fsj05pza0vhVh62wdUZ9ApJee9s2/c0600c5e-1f1e-44c1-acfc-b29440b80ed1.json"
+}

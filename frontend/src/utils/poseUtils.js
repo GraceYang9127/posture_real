@@ -15,7 +15,7 @@ const rightSideLandmarks = [
 function isSideVisible(landmarks, sideLandmarks) {
   return sideLandmarks.every(index => {
     const lm = landmarks[index];
-    return lm && lm.visibility !== undefined && lm.visibility > 0.5;
+    return lm && lm.visibility !== undefined && lm.visibility > 0.25;
   });
 }
 
@@ -50,7 +50,7 @@ function isBackStraightByAngle(landmarks){
     if (!leftShoulder || !leftHip || !leftKnee) return false;
 
     const torsoAngle = angleBetweenPoints(leftShoulder, leftHip, leftKnee);
-    return torsoAngle >= 90 && torsoAngle <= 100;
+    return torsoAngle >= 160 && torsoAngle <= 185;
 }
 
 function isBackStraight(landmarks) {
@@ -63,7 +63,8 @@ function isBackStraight(landmarks) {
 
     const lSlope = Math.abs(lShoulder.y - lHip.y);
     const rSlope = Math.abs(rShoulder.y - rHip.y);
-    return lSlope < 0.5 || rSlope < 0.5;
+    const dx = Math.abs(lShoulder.x - lHip.x);
+    return dx < 0.05;
 }
 
 export function checkBackPosture(landmarks){
@@ -72,12 +73,20 @@ export function checkBackPosture(landmarks){
     const angleCheck = isBackStraightByAngle(landmarks);
     return verticalCheck && angleCheck;
 }
-
 function isHeadAligned(landmarks){
-    const leftEar = landmarks[POSE_LANDMARKS.LEFT_EAR];
-    const rightEar = landmarks[POSE_LANDMARKS.RIGHT_EAR];
-    const leftShoulder =landmarks[POSE_LANDMARKS.LEFT_SHOULDER];
-    const rightShoulder = landmakrs[POSE_LANDMARKS.RIGHT_SHOULDER];
-    
+  const leftEar = landmarks[POSE_LANDMARKS.LEFT_EAR];
+  const rightEar = landmarks[POSE_LANDMARKS.RIGHT_EAR];
+  const leftShoulder = landmarks[POSE_LANDMARKS.LEFT_SHOULDER];
+  const rightShoulder = landmarks[POSE_LANDMARKS.RIGHT_SHOULDER];
 
+  if (!leftEar || !leftShoulder) return false;
+
+  const earX = leftEar.x || rightEar?.x;
+  const shoulderX = leftShoulder.x || rightShoulder?.x;
+
+  if (!earX || !shoulderX) return false;
+
+  const dx = Math.abs(earX - shoulderX);
+
+  return dx < 0.06; // threshold for forward head
 }
