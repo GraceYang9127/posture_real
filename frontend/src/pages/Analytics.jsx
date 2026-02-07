@@ -40,14 +40,11 @@ export default function Analytics() {
         const analysisUrlData = await analysisRes.json();
 
         const analysisJsonRes = await fetch(analysisUrlData.downloadUrl);
-
         if (!analysisJsonRes.ok) {
           throw new Error("Analysis file not found");
         }
 
         const analysisJson = await analysisJsonRes.json();
-
-
         setAnalysis(analysisJson);
         setStatus("");
       } catch (err) {
@@ -68,8 +65,7 @@ export default function Analytics() {
     );
   }
 
-  const { metrics, feedback, instrument, overall_score } = analysis;
-
+  const { metrics, feedback, instrument, overall_score, weak_label } = analysis;
 
   return (
     <div
@@ -130,44 +126,78 @@ export default function Analytics() {
           />
 
           <Metric
-            label="Forward head angle (avg)"
-            value={`${metrics.head_forward_mean_deg.toFixed(1)}°`}
+            label="Head angle (avg)"
+            value={
+              metrics?.head_angle_mean_deg != null
+                ? `${metrics.head_angle_mean_deg.toFixed(1)}°`
+                : "N/A"
+            }
           />
 
           <Metric
-            label="Torso lean angle (avg)"
-            value={`${metrics.torso_lean_mean_deg.toFixed(1)}°`}
+            label="Torso angle (avg)"
+            value={
+              metrics?.torso_angle_mean_deg != null
+                ? `${metrics.torso_angle_mean_deg.toFixed(1)}°`
+                : "N/A"
+            }
+          />
+
+          <Metric
+            label="Head posture deviation"
+            value={
+              metrics?.head_dev_deg != null
+                ? `${metrics.head_dev_deg.toFixed(1)}°`
+                : "N/A"
+            }
           />
 
           <Metric
             label="Posture stability"
-            value={metrics.head_stability_variance.toFixed(3)}
+            value={
+              metrics?.stability_std_dev_deg != null
+                ? metrics.stability_std_dev_deg.toFixed(2)
+                : "N/A"
+            }
           />
 
           <Metric
             label="Pose detection coverage"
-            value={`${Math.round(metrics.pose_coverage * 100)}%`}
+            value={
+              metrics?.pose_coverage_sampled != null
+                ? `${Math.round(metrics.pose_coverage_sampled * 100)}%`
+                : "N/A"
+            }
           />
+
+
+          {weak_label === "Unknown" && (
+            <div style={{ marginTop: 12, fontSize: 13, color: "#aa3333" }}>
+              Insufficient pose data for reliable posture metrics.
+            </div>
+          )}
         </div>
-        </div>
+      </div>
 
       {/* Feedback */}
-      <div
-        style={{
-          marginTop: 32,
-          background: "#ffffff",
-          padding: 24,
-          borderRadius: 12,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Actionable Feedback</h3>
-        <ul style={{ paddingLeft: 20, lineHeight: 1.6 }}>
-          {feedback.map((item, idx) => (
-            <li key={idx}>{item}</li>
-          ))}
-        </ul>
-      </div>
+      {Array.isArray(feedback) && feedback.length > 0 && (
+        <div
+          style={{
+            marginTop: 32,
+            background: "#ffffff",
+            padding: 24,
+            borderRadius: 12,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Actionable Feedback</h3>
+          <ul style={{ paddingLeft: 20, lineHeight: 1.6 }}>
+            {feedback.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,48 @@
+{
+  "video_id": "04d9d640875385f809465345dfe05d2f",
+  "instrument": "Piano",
+  "created_at": "2026-02-07T21:58:29.838008",
+  "overall_score": 84,
+  "weak_label": "Good",
+  "feature_vector": {
+    "head_angle_mean_deg": 167.280214,
+    "head_angle_var": 11.317823,
+    "torso_angle_mean_deg": 177.912007,
+    "head_dev_deg": 4.280214,
+    "torso_dev_deg": 1.087993,
+    "stability_std_dev_deg": 2.984003,
+    "pose_coverage": 0.499747,
+    "pose_coverage_sampled": 1.0,
+    "session_duration_sec": 65.766667,
+    "sampled_frames": 986.0,
+    "frames_with_pose": 986.0
+  },
+  "metrics": {
+    "head_angle_mean_deg": 167.28,
+    "torso_angle_mean_deg": 177.91,
+    "head_dev_deg": 4.28,
+    "torso_dev_deg": 1.09,
+    "stability_std_dev_deg": 2.984,
+    "pose_coverage": 0.5,
+    "pose_coverage_sampled": 1.0
+  },
+  "feedback": [
+    "Maintain neutral head alignment to reduce neck strain.",
+    "Keep torso upright with relaxed shoulders.",
+    "Consistent posture improves long-term comfort and performance."
+  ],
+  "metadata": {
+    "analysis_version": "mediapipe-calibrated-v3",
+    "pose_confidence": 0.35,
+    "frame_sample_rate": 2,
+    "total_frames": 1973,
+    "fps": 30.0,
+    "duration_sec": 65.767,
+    "sampled_frames": 986,
+    "frames_with_pose": 986,
+    "pose_detected": true
+  },
+  "title": "Midnight Rhapsody",
+  "videoKey": "videos/fsj05pza0vhVh62wdUZ9ApJee9s2/bb692f5e-fe29-4798-96c2-d564ebfd1bc1_recording-1770501451516.video",
+  "analysisKey": "analysis/fsj05pza0vhVh62wdUZ9ApJee9s2/bb692f5e-fe29-4798-96c2-d564ebfd1bc1.json"
+}

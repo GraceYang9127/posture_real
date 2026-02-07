@@ -1,0 +1,48 @@
+{
+  "video_id": "acbaeee6de206a00964b9c6d5ff7ee1b",
+  "instrument": "Piano",
+  "created_at": "2026-02-07T21:51:03.081532",
+  "overall_score": 63,
+  "weak_label": "Okay",
+  "feature_vector": {
+    "head_angle_mean_deg": 156.919282,
+    "head_angle_var": 175.074501,
+    "torso_angle_mean_deg": 177.821093,
+    "head_dev_deg": 6.080718,
+    "torso_dev_deg": 1.178907,
+    "stability_std_dev_deg": 10.307013,
+    "pose_coverage": 0.5,
+    "pose_coverage_sampled": 1.0,
+    "session_duration_sec": 27.0,
+    "sampled_frames": 405.0,
+    "frames_with_pose": 405.0
+  },
+  "metrics": {
+    "head_angle_mean_deg": 156.92,
+    "torso_angle_mean_deg": 177.82,
+    "head_dev_deg": 6.08,
+    "torso_dev_deg": 1.18,
+    "stability_std_dev_deg": 10.307,
+    "pose_coverage": 0.5,
+    "pose_coverage_sampled": 1.0
+  },
+  "feedback": [
+    "Maintain neutral head alignment to reduce neck strain.",
+    "Keep torso upright with relaxed shoulders.",
+    "Consistent posture improves long-term comfort and performance."
+  ],
+  "metadata": {
+    "analysis_version": "mediapipe-calibrated-v3",
+    "pose_confidence": 0.35,
+    "frame_sample_rate": 2,
+    "total_frames": 810,
+    "fps": 30.0,
+    "duration_sec": 27.0,
+    "sampled_frames": 405,
+    "frames_with_pose": 405,
+    "pose_detected": true
+  },
+  "title": "Maple Leaf Rag",
+  "videoKey": "videos/fsj05pza0vhVh62wdUZ9ApJee9s2/b72c6181-3ff5-49c4-a557-14e8c94e6d76_recording-1770501037548.video",
+  "analysisKey": "analysis/fsj05pza0vhVh62wdUZ9ApJee9s2/b72c6181-3ff5-49c4-a557-14e8c94e6d76.json"
+}
