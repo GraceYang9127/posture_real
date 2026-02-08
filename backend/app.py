@@ -12,6 +12,7 @@ import sys
 import json
 import threading
 from datetime import datetime
+from advice import generate_advice
 
 sys.stdout.reconfigure(line_buffering=True)
 load_dotenv()
@@ -26,6 +27,49 @@ AWS_BUCKET = os.getenv("AWS_BUCKET_NAME")
 s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
 
 analysis_events = {}
+
+# ---------- CHAT (Groq) ----------
+@app.route("/chat", methods=["POST", "OPTIONS"])
+@app.route("/api/chat", methods=["POST", "OPTIONS"])
+def chat():
+    # Preflight
+    if request.method == "OPTIONS":
+        return "", 200
+
+    if not GROQ_API_KEY:
+        return jsonify({"error": "Missing GROQ_API_KEY in backend .env"}), 500
+
+    data = request.get_json(silent=True) or {}
+    messages = data.get("messages")
+
+    if not isinstance(messages, list) or len(messages) == 0:
+        return jsonify({"error": "messages must be a non-empty list"}), 400
+
+    # Groq is OpenAI-compatible
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+        "messages": messages,
+        "temperature": 0.4,
+    }
+
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=30)
+        if not r.ok:
+            return jsonify({"error": "Groq request failed", "details": r.text}), 500
+
+        out = r.json()
+        reply = out["choices"][0]["message"]["content"]
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        return jsonify({"error": "Chat server error", "details": str(e)}), 500
+
 
 # ---------- DOWNLOAD URL ----------
 @app.route("/api/download-url", methods=["POST", "OPTIONS"])
@@ -93,11 +137,14 @@ def create_upload_url():
 # ---------- BACKGROUND ANALYSIS ----------
 def run_analysis_async(user_id, s3_key, instrument, title):
     try:
+        # ---- Temp files ----
         local_video = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.mp4")
         local_json = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.json")
 
+        # ---- Download video ----
         s3.download_file(AWS_BUCKET, s3_key, local_video)
 
+        # ---- Run analysis script ----
         script_path = os.path.join(
             os.path.dirname(__file__),
             "analysis",
@@ -109,22 +156,32 @@ def run_analysis_async(user_id, s3_key, instrument, title):
             check=True,
         )
 
+        # ---- Derive IDs ----
         video_id = s3_key.split("/")[-1].split("_")[0]
         analysis_key = f"analysis/{user_id}/{video_id}.json"
 
+        # ---- Load analysis output ----
         with open(local_json, "r") as f:
             analysis = json.load(f)
 
+        # ---- Generate personalized advice (CORRECT ORDER) ----
+        metrics = analysis.get("metrics", {})
+        analysis["advice"] = generate_advice(metrics)
+
+        # ---- Attach metadata ----
         analysis.update({
             "title": title or "Untitled Video",
             "videoKey": s3_key,
             "analysisKey": analysis_key,
+            "instrument": instrument,
             "created_at": datetime.utcnow().isoformat(),
         })
 
+        # ---- Save updated JSON ----
         with open(local_json, "w") as f:
             json.dump(analysis, f, indent=2)
 
+        # ---- Upload analysis ----
         s3.upload_file(
             local_json,
             AWS_BUCKET,
@@ -132,6 +189,7 @@ def run_analysis_async(user_id, s3_key, instrument, title):
             ExtraArgs={"ContentType": "application/json"},
         )
 
+        # ---- Notify SSE listeners ----
         q = analysis_events.setdefault(user_id, Queue())
         q.put({
             "type": "analysis_complete",
@@ -144,6 +202,7 @@ def run_analysis_async(user_id, s3_key, instrument, title):
 
     except Exception as e:
         print("❌ Background analysis failed:", e)
+
 
 
 # ---------- START ANALYSIS ----------
@@ -222,6 +281,28 @@ def analysis_events_stream(user_id):
             "X-Accel-Buffering": "no",
         },
     )
+
+# ---------- DELETE VIDEO + ANALYSIS ----------
+@app.route("/api/delete-video", methods=["POST"])
+def delete_video():
+    data = request.get_json()
+    user_id = data.get("userId")
+    video_id = data.get("videoId")
+
+    if not user_id or not video_id:
+        return jsonify({"error": "Missing userId or videoId"}), 400
+
+    s3 = boto3.client("s3")
+
+    video_key = f"videos/{user_id}/{video_id}.mp4"
+    analysis_key = f"analysis/{user_id}/{video_id}.json"
+
+    try:
+        s3.delete_object(Bucket=AWS_BUCKET, Key=video_key)
+        s3.delete_object(Bucket=AWS_BUCKET, Key=analysis_key)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

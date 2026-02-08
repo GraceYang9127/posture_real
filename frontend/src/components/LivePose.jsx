@@ -3,33 +3,47 @@ import { Pose } from "@mediapipe/pose";
 import { Camera } from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import * as mpPose from "@mediapipe/pose";
-import { checkBackPosture, checkRequiredLandmarks } from "../utils/poseUtils";
+import { checkRequiredLandmarks } from "../utils/poseUtils";
+
+/**
+ * Tunables — these matter
+ */
+const SMOOTHING_WINDOW = 3;        // ~0.5s
+const GOOD_TORSO_DEVIATION = 6;    // degrees from baseline
+const STATE_THRESHOLD = 1;          // hysteresis strength
+const LEFT_SHOULDER = 11;
+const RIGHT_SHOULDER = 12;
+const LEFT_HIP = 23;
+const RIGHT_HIP = 24;
+
 
 export default function LivePose({ onStream }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+
+  // Buffers for smoothing
+  const torsoBuffer = useRef([]);
+  const baselineTorso = useRef(null);
+
+  // Posture state memory
+  const postureScore = useRef(0);
+  const postureState = useRef("bad");
 
   useEffect(() => {
     let camera = null;
     let pose = null;
 
     pose = new Pose({
-      locateFile: (file) => {
-        if (!file) return undefined;
-
-        return new URL(
+      locateFile: (file) =>
+        new URL(
           `/node_modules/@mediapipe/pose/${file}`,
           window.location.origin
-        ).toString();
-      },
+        ).toString(),
     });
-
 
     pose.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
-      enableSegmentation: false,
-      smoothSegmentation: false,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
     });
@@ -48,150 +62,143 @@ export default function LivePose({ onStream }) {
           ) {
             return;
           }
-
           await pose.send({ image: videoRef.current });
         },
-
       });
 
       await camera.start();
 
-      /**
-       * Instead of exposing the raw webcam stream,
-       * we expose the CANVAS stream so recordings include:
-       * - camera image
-       * - pose skeleton
-       * - posture text
-       */
-      const canvas = canvasRef.current;
-      if (canvas && onStream) {
-        const canvasStream = canvas.captureStream(30); // 30 FPS
-        onStream(canvasStream);
+      // Capture canvas stream for recording
+      if (canvasRef.current && onStream) {
+        onStream(canvasRef.current.captureStream(30));
       }
     };
 
-    startCamera().catch((e) =>
-      console.error("Failed to start camera:", e)
-    );
+    startCamera().catch(console.error);
 
     return () => {
-      try {
-        if (camera) {
-          camera.stop();
-          camera = null;
-        }
-
-        if (pose) {
-          pose.close();
-          pose = null;
-        }
-
-        const stream = videoRef.current?.srcObject;
-        if (stream && stream.getTracks) {
-          stream.getTracks().forEach((t) => t.stop());
-        }
-      } catch (e) {
-      }
+      camera?.stop();
+      pose?.close();
+      const stream = videoRef.current?.srcObject;
+      stream?.getTracks?.().forEach((t) => t.stop());
     };
-
   }, [onStream]);
 
+  function smooth(buffer, value) {
+    buffer.push(value);
+    if (buffer.length > SMOOTHING_WINDOW) buffer.shift();
+    return buffer.reduce((a, b) => a + b, 0) / buffer.length;
+  }
+
+  function computeTorsoAngle(landmarks) {
+    if (!landmarks || landmarks.length < 25) return null;
+
+    const ls = landmarks[LEFT_SHOULDER];
+    const rs = landmarks[RIGHT_SHOULDER];
+    const lh = landmarks[LEFT_HIP];
+    const rh = landmarks[RIGHT_HIP];
+
+    if (!ls || !rs || !lh || !rh) return null;
+
+    const shoulderMid = {
+      x: (ls.x + rs.x) / 2,
+      y: (ls.y + rs.y) / 2,
+    };
+
+    const hipMid = {
+      x: (lh.x + rh.x) / 2,
+      y: (lh.y + rh.y) / 2,
+    };
+
+    const dx = shoulderMid.x - hipMid.x;
+    const dy = hipMid.y - shoulderMid.y;
+
+    if (!isFinite(dx) || !isFinite(dy) || dy === 0) return null;
+
+    return Math.abs((Math.atan2(dx, dy) * 180) / Math.PI);
+  }
+
+
   function onResults(results) {
-    const canvasElement = canvasRef.current;
-    if (!canvasElement) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const canvasCtx = canvasElement.getContext("2d");
+    const ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    canvasCtx.save();
-    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-    const videoWidth = results.image.width;
-    const videoHeight = results.image.height;
-
-    const canvasWidth = canvasElement.width;
-    const canvasHeight = canvasElement.height;
-
-    const videoAspect = videoWidth / videoHeight;
-    const canvasAspect = canvasWidth / canvasHeight;
-
-    let srcX = 0;
-    let srcY = 0;
-    let srcW = videoWidth;
-    let srcH = videoHeight;
-
-    if (videoAspect > canvasAspect) {
-      srcW = videoHeight * canvasAspect;
-      srcX = (videoWidth - srcW) / 2;
-    } else {
-      srcH = videoWidth / canvasAspect;
-      srcY = (videoHeight - srcH) / 2;
-    }
-
-    canvasCtx.drawImage(
-      results.image,
-      srcX,
-      srcY,
-      srcW,
-      srcH,
-      0,
-      0,
-      canvasWidth,
-      canvasHeight
-    );
-
+    // Draw camera image
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
     if (results.poseLandmarks) {
-      drawConnectors(
-        canvasCtx,
-        results.poseLandmarks,
-        mpPose.POSE_CONNECTIONS,
-        {
-          color: "#00FF00",
-          lineWidth: 4,
-        }
-      );
-
-      drawLandmarks(canvasCtx, results.poseLandmarks, {
+      drawConnectors(ctx, results.poseLandmarks, mpPose.POSE_CONNECTIONS, {
+        color: "#00FF00",
+        lineWidth: 4,
+      });
+      drawLandmarks(ctx, results.poseLandmarks, {
         color: "#FF0000",
         lineWidth: 2,
       });
 
-      const hasAllLandmarks = checkRequiredLandmarks(
-        results.poseLandmarks
-      );
+      const valid = checkRequiredLandmarks(results.poseLandmarks);
+      ctx.font = "24px Arial";
 
-      canvasCtx.font = "24px Arial";
-
-      if (!hasAllLandmarks) {
-        canvasCtx.fillStyle = "yellow";
-        canvasCtx.fillText(
-          "Please have full body in picture",
-          20,
-          40
-        );
+      if (!valid) {
+        ctx.fillStyle = "yellow";
+        ctx.fillText("Please have full body in view", 20, 40);
       } else {
-        const backStraight = checkBackPosture(
-          results.poseLandmarks
-        );
+        const rawTorso = computeTorsoAngle(results.poseLandmarks);
+        if (rawTorso === null) {
+          ctx.fillStyle = "yellow";
+          ctx.fillText("Hold still / keep body in view", 20, 40);
+          ctx.restore();
+          return;
+        }
 
-        canvasCtx.fillStyle = backStraight ? "green" : "red";
-        canvasCtx.fillText(
-          backStraight ? "Back straight" : "Back bent",
+        const torso = smooth(torsoBuffer.current, rawTorso);
+
+
+        // Establish baseline once user is stable
+        if (!baselineTorso.current && torsoBuffer.current.length === 3) {
+          baselineTorso.current = torso;
+        }
+
+        let isGood = false;
+        if (baselineTorso.current !== null) {
+          const deviation = Math.abs(torso - baselineTorso.current);
+
+          const rawDeviation = Math.abs(rawTorso - baselineTorso.current);
+          const isGoodInstant = rawDeviation < GOOD_TORSO_DEVIATION;
+
+
+          const smoothDeviation = Math.abs(torso - baselineTorso.current);
+          const isGoodStable = smoothDeviation < GOOD_TORSO_DEVIATION;
+
+        }
+
+        // Hysteresis
+        postureScore.current += isGoodStable ? 1 : -1;
+        postureScore.current = Math.max(-3, Math.min(3, postureScore.current));
+
+        if (postureScore.current >= STATE_THRESHOLD) postureState.current = "good";
+        if (postureScore.current <= -STATE_THRESHOLD) postureState.current = "bad";
+
+        ctx.fillStyle = isGoodInstant ? "green" : "red";
+        ctx.fillText(
+          isGoodInstant ? "Good posture" : "Back bent",
           20,
           40
         );
+
       }
     }
 
-    canvasCtx.restore();
+    ctx.restore();
   }
 
   return (
     <div>
-      {/* Hidden video is ONLY used as MediaPipe input */}
       <video ref={videoRef} style={{ display: "none" }} playsInline />
-
-      {/* Canvas is the final visual output AND what gets recorded */}
       <canvas ref={canvasRef} width={900} height={600} />
     </div>
   );
