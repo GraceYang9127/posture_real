@@ -17,11 +17,14 @@ export default function History() {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.uid }),
-        });
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/history`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.uid }),
+          }
+        );
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load");
@@ -37,7 +40,51 @@ export default function History() {
     run();
   }, []);
 
-  if (status) return <div style={{ padding: 32, color: "#666" }}>{status}</div>;
+  async function handleDelete(e, row) {
+    e.stopPropagation();
+
+    const user = getAuth().currentUser;
+    if (!user) return;
+
+    const ok = window.confirm(
+      "Delete this video and its analysis permanently?"
+    );
+    if (!ok) return;
+
+    try {
+      const analysisKey = row.analysisKey;
+      const videoId = analysisKey.split("/").pop().replace(".json", "");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/delete-video`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.uid,
+            videoId,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Delete failed");
+      }
+
+      setRows((prev) =>
+        prev.filter((r) => r.analysisKey !== row.analysisKey)
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete video.");
+    }
+  }
+
+
+  if (status) {
+    return <div style={{ padding: 32, color: "#666" }}>{status}</div>;
+  }
 
   return (
     <div style={{ padding: 32, maxWidth: 900, margin: "0 auto" }}>
@@ -57,7 +104,9 @@ export default function History() {
               key={idx}
               onClick={() =>
                 navigate(
-                  `/analytics?videoKey=${encodeURIComponent(r.videoKey)}&analysisKey=${encodeURIComponent(r.analysisKey)}`
+                  `/analytics?videoKey=${encodeURIComponent(
+                    r.videoKey
+                  )}&analysisKey=${encodeURIComponent(r.analysisKey)}`
                 )
               }
               style={{
@@ -69,13 +118,18 @@ export default function History() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                gap: 16,
               }}
             >
               <div>
                 <div style={{ fontWeight: 700 }}>
-                  {r.createdAt ? new Date(r.createdAt).toLocaleString() : "Unknown date"}
+                  {r.createdAt
+                    ? new Date(r.createdAt).toLocaleString()
+                    : "Unknown date"}
                 </div>
-                <div style={{ color: "#666", fontSize: 13, marginTop: 4 }}>
+                <div
+                  style={{ color: "#666", fontSize: 13, marginTop: 4 }}
+                >
                   Instrument: {r.instrument || "Unknown"}{" "}
                   {typeof r.poseCoverage === "number"
                     ? `• Coverage: ${Math.round(r.poseCoverage * 100)}%`
@@ -87,10 +141,27 @@ export default function History() {
                 {r.title || "Untitled video"}
               </div>
 
-
               <div style={{ fontSize: 22, fontWeight: 800 }}>
-                {typeof r.overallScore === "number" ? `${r.overallScore}` : "—"}
+                {typeof r.overallScore === "number"
+                  ? `${r.overallScore}`
+                  : "—"}
               </div>
+
+              {/* Delete button */}
+              <button
+                onClick={(e) => handleDelete(e, r)}
+                style={{
+                  background: "#ff4d4f",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Delete
+              </button>
             </div>
           ))}
         </div>

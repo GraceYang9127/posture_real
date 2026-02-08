@@ -15,34 +15,41 @@ export default function Analytics() {
 
   useEffect(() => {
     const loadAnalytics = async () => {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
+      const user = getAuth().currentUser;
       if (!user) {
         setStatus("Not authenticated.");
         return;
       }
 
       try {
-        const videoRes = await fetch("http://localhost:5000/api/download-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.uid, key: videoKey }),
-        });
+        // Get presigned video URL
+        const videoRes = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/download-url`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.uid, key: videoKey }),
+          }
+        );
         const videoData = await videoRes.json();
+        if (!videoRes.ok) throw new Error(videoData.error || "Failed to load video URL");
         setVideoUrl(videoData.downloadUrl);
 
-        const analysisRes = await fetch("http://localhost:5000/api/download-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: user.uid, key: analysisKey }),
-        });
+        // Get presigned analysis URL
+        const analysisRes = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/download-url`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.uid, key: analysisKey }),
+          }
+        );
         const analysisUrlData = await analysisRes.json();
+        if (!analysisRes.ok) throw new Error(analysisUrlData.error || "Failed to load analysis URL");
 
+        // Fetch analysis JSON
         const analysisJsonRes = await fetch(analysisUrlData.downloadUrl);
-        if (!analysisJsonRes.ok) {
-          throw new Error("Analysis file not found");
-        }
+        if (!analysisJsonRes.ok) throw new Error("Analysis file not found");
 
         const analysisJson = await analysisJsonRes.json();
         setAnalysis(analysisJson);
@@ -57,6 +64,14 @@ export default function Analytics() {
     else setStatus("Missing video or analysis reference.");
   }, [videoKey, analysisKey]);
 
+  if (status) {
+    return (
+      <div style={{ padding: 32, fontSize: 16, color: "#666" }}>
+        {status}
+      </div>
+    );
+  }
+
   if (!analysis || !analysis.metrics) {
     return (
       <div style={{ padding: 32, fontSize: 16, color: "#666" }}>
@@ -65,7 +80,12 @@ export default function Analytics() {
     );
   }
 
-  const { metrics, feedback, instrument, overall_score, weak_label } = analysis;
+  const { metrics, instrument, overall_score, weak_label, advice, feedback } = analysis;
+
+  // Show personalized advice if present, otherwise fallback to old static feedback
+  const tips = Array.isArray(advice) && advice.length > 0
+    ? advice
+    : (Array.isArray(feedback) ? feedback : []);
 
   return (
     <div
@@ -120,16 +140,13 @@ export default function Analytics() {
         >
           <h3 style={{ marginTop: 0 }}>Summary</h3>
 
-          <Metric
-            label="Overall posture score"
-            value={`${overall_score}/100`}
-          />
+          <Metric label="Overall posture score" value={`${overall_score}/100`} />
 
           <Metric
             label="Head angle (avg)"
             value={
               metrics?.head_angle_mean_deg != null
-                ? `${metrics.head_angle_mean_deg.toFixed(1)}°`
+                ? `${Number(metrics.head_angle_mean_deg).toFixed(1)}°`
                 : "N/A"
             }
           />
@@ -138,7 +155,7 @@ export default function Analytics() {
             label="Torso angle (avg)"
             value={
               metrics?.torso_angle_mean_deg != null
-                ? `${metrics.torso_angle_mean_deg.toFixed(1)}°`
+                ? `${Number(metrics.torso_angle_mean_deg).toFixed(1)}°`
                 : "N/A"
             }
           />
@@ -147,7 +164,7 @@ export default function Analytics() {
             label="Head posture deviation"
             value={
               metrics?.head_dev_deg != null
-                ? `${metrics.head_dev_deg.toFixed(1)}°`
+                ? `${Number(metrics.head_dev_deg).toFixed(1)}°`
                 : "N/A"
             }
           />
@@ -156,7 +173,7 @@ export default function Analytics() {
             label="Posture stability"
             value={
               metrics?.stability_std_dev_deg != null
-                ? metrics.stability_std_dev_deg.toFixed(2)
+                ? Number(metrics.stability_std_dev_deg).toFixed(2)
                 : "N/A"
             }
           />
@@ -165,11 +182,10 @@ export default function Analytics() {
             label="Pose detection coverage"
             value={
               metrics?.pose_coverage_sampled != null
-                ? `${Math.round(metrics.pose_coverage_sampled * 100)}%`
+                ? `${Math.round(Number(metrics.pose_coverage_sampled) * 100)}%`
                 : "N/A"
             }
           />
-
 
           {weak_label === "Unknown" && (
             <div style={{ marginTop: 12, fontSize: 13, color: "#aa3333" }}>
@@ -179,8 +195,8 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Feedback */}
-      {Array.isArray(feedback) && feedback.length > 0 && (
+      {/* Advice / Feedback */}
+      {tips.length > 0 && (
         <div
           style={{
             marginTop: 32,
@@ -190,9 +206,14 @@ export default function Analytics() {
             boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Actionable Feedback</h3>
+          <h3 style={{ marginTop: 0 }}>
+            {Array.isArray(advice) && advice.length > 0
+              ? "Personalized Advice"
+              : "General Tips"}
+          </h3>
+
           <ul style={{ paddingLeft: 20, lineHeight: 1.6 }}>
-            {feedback.map((item, idx) => (
+            {tips.map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
           </ul>
