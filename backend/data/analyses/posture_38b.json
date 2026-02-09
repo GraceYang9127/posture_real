@@ -3,7 +3,7 @@
   "instrument": "Piano",
   "created_at": "2026-02-07T18:54:09.086543",
   "overall_score": 38,
-  "weak_label": "Risky",
+  "weak_label": "Bad",
   "feature_vector": {
     "head_angle_mean_deg": 121.885537,
     "head_angle_var": 11.718899,

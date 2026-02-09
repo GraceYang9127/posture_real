@@ -81,7 +81,6 @@ export default function History() {
     }
   }
 
-
   if (status) {
     return <div style={{ padding: 32, color: "#666" }}>{status}</div>;
   }
@@ -99,71 +98,108 @@ export default function History() {
         </div>
       ) : (
         <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
-          {rows.map((r, idx) => (
-            <div
-              key={idx}
-              onClick={() =>
-                navigate(
-                  `/analytics?videoKey=${encodeURIComponent(
-                    r.videoKey
-                  )}&analysisKey=${encodeURIComponent(r.analysisKey)}`
-                )
-              }
-              style={{
-                cursor: "pointer",
-                background: "#fff",
-                borderRadius: 12,
-                padding: 16,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 16,
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700 }}>
-                  {r.createdAt
-                    ? new Date(r.createdAt).toLocaleString()
-                    : "Unknown date"}
-                </div>
-                <div
-                  style={{ color: "#666", fontSize: 13, marginTop: 4 }}
-                >
-                  Instrument: {r.instrument || "Unknown"}{" "}
-                  {typeof r.poseCoverage === "number"
-                    ? `• Coverage: ${Math.round(r.poseCoverage * 100)}%`
-                    : ""}
-                </div>
-              </div>
+          {rows.map((r, idx) => {
+            const mlColor =
+              r.mlLabel === "Good"
+                ? "#52c41a"
+                : r.mlLabel === "Okay"
+                ? "#faad14"
+                : r.mlLabel === "Bad"
+                ? "#ff4d4f"
+                : "#999";
 
-              <div style={{ fontWeight: 700 }}>
-                {r.title || "Untitled video"}
-              </div>
-
-              <div style={{ fontSize: 22, fontWeight: 800 }}>
-                {typeof r.overallScore === "number"
-                  ? `${r.overallScore}`
-                  : "—"}
-              </div>
-
-              {/* Delete button */}
-              <button
-                onClick={(e) => handleDelete(e, r)}
+            return (
+              <div
+                key={idx}
+                onClick={() =>
+                  navigate(
+                    `/analytics?videoKey=${encodeURIComponent(
+                      r.videoKey
+                    )}&analysisKey=${encodeURIComponent(r.analysisKey)}`
+                  )
+                }
                 style={{
-                  background: "#ff4d4f",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  fontWeight: 600,
                   cursor: "pointer",
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: 16,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto auto auto auto",
+                  alignItems: "center",
+                  gap: 16,
                 }}
               >
-                Delete
-              </button>
-            </div>
-          ))}
+                {/* Left info */}
+                <div>
+                  <div style={{ fontWeight: 700 }}>
+                    {r.createdAt
+                      ? new Date(r.createdAt).toLocaleString()
+                      : "Unknown date"}
+                  </div>
+                  <div
+                    style={{ color: "#666", fontSize: 13, marginTop: 4 }}
+                  >
+                    Instrument: {r.instrument || "Unknown"}{" "}
+                  </div>
+
+                  {/* ML opinion */}
+                  {r.mlLabel && (
+                    <div
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        color: "#666",
+                      }}
+                    >
+                      ML opinion:{" "}
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: mlColor,
+                        }}
+                      >
+                        {r.mlLabel}
+                      </span>
+                      {typeof r.mlConfidence === "number" && (
+                        <span style={{ marginLeft: 4 }}>
+                          ({Math.round(r.mlConfidence * 100)}%)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Title */}
+                <div style={{ fontWeight: 700 }}>
+                  {r.title || "Untitled video"}
+                </div>
+
+                {/* Score */}
+                <div style={{ fontSize: 22, fontWeight: 800 }}>
+                  {typeof r.overallScore === "number"
+                    ? r.overallScore
+                    : "—"}
+                </div>
+
+                {/* Delete button */}
+                <button
+                  onClick={(e) => handleDelete(e, r)}
+                  style={{
+                    background: "#ff4d4f",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

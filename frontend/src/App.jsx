@@ -12,9 +12,12 @@ import { auth } from "./firebase";
 import toast from "react-hot-toast"
 
 function App() {
+  //Track authenticated user
   const [user, setUser] = useState(null);
+  //Prevents rendering before auth state is resolved
   const [authReady, setAuthReady] = useState(false);
-
+  //Subscribe to backend analysis events
+  //Enable real-time notifications when processing is done
   useEffect(() => {
     if (!user) return;
 
@@ -29,16 +32,16 @@ function App() {
         toast.success(`"${data.title}" is ready 🎉`);
       }
     };
-
+    //CLose connection on an error
     es.onerror = () => {
       es.close();
     };
-
+    // Cleanup on user change
     return () => {
       es.close();
     };
   }, [user]);
-
+  //Centralized authentication listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -46,7 +49,7 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
-
+  //Avoid rendering app before auth resolves
   if (!authReady) return null;
 
   return (
@@ -62,8 +65,8 @@ function App() {
           {/* Protect these routes */}
           <Route path="/Home" element={user ? <Home /> : <Navigate to="/SignIn" replace />} />
           <Route path="/Camera" element={user ? <Camera /> : <Navigate to="/SignIn" replace />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/History" element={<History />} />
+          <Route path="/analytics" element={user ? <Analytics /> : <Navigate to="/SignIn" replace />} />
+          <Route path="/History" element={user ? <History /> : <Navigate to="/SignIn" replace />} />
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
