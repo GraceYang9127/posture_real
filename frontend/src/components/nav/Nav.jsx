@@ -10,26 +10,35 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 
 const Nav = () => {
+
+  //Holds Authenticated Firebase user (null if signed out)
   const [user, setUser] = useState(null);
+  // Stores user's preferred instrument (in Firestore)
   const [selectedInstrument, setSelectedInstrument] = useState("Select Instrument");
+  // Determines which route is currently active
   const location = useLocation();
 
   useEffect(() => {
+
+    //Subscribe to authentication state changes, keeps UI synchronized with login/logout
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
 
       if (currentUser) {
+        //Load user-specific preferences from firestore
         const docRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
+          //Restore last-used instrument across sessions
           if (data.instrument) setSelectedInstrument(data.instrument);
         }
       } else {
+        //Reset UI when user logs out
         setSelectedInstrument("Select Instrument");
       }
     });
-
+    //Cleanup listener on component enmount
     return () => unsubscribe();
   }, []);
 

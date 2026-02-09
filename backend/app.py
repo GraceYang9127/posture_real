@@ -13,6 +13,7 @@ import json
 import threading
 from datetime import datetime
 from advice import generate_advice
+from ml.inference import predict_posture
 
 sys.stdout.reconfigure(line_buffering=True)
 load_dotenv()
@@ -29,23 +30,23 @@ s3 = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
 analysis_events = {}
 
 # ---------- CHAT (Groq) ----------
+# Communication between frontend and Groq API
 @app.route("/chat", methods=["POST", "OPTIONS"])
 @app.route("/api/chat", methods=["POST", "OPTIONS"])
 def chat():
-    # Preflight
+    # CORS Preflight
     if request.method == "OPTIONS":
         return "", 200
-
+    
+    # Validate API Key
     if not GROQ_API_KEY:
         return jsonify({"error": "Missing GROQ_API_KEY in backend .env"}), 500
-
     data = request.get_json(silent=True) or {}
     messages = data.get("messages")
 
     if not isinstance(messages, list) or len(messages) == 0:
         return jsonify({"error": "messages must be a non-empty list"}), 400
-
-    # Groq is OpenAI-compatible
+    # External API config (Groq-compatible OpenAI endpoint)
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -59,10 +60,11 @@ def chat():
     }
 
     try:
+        # synch API call, with protection for timeout
         r = requests.post(url, headers=headers, json=payload, timeout=30)
         if not r.ok:
             return jsonify({"error": "Groq request failed", "details": r.text}), 500
-
+        # Extract generated response from LLM
         out = r.json()
         reply = out["choices"][0]["message"]["content"]
         return jsonify({"reply": reply})
@@ -163,6 +165,16 @@ def run_analysis_async(user_id, s3_key, instrument, title):
         # ---- Load analysis output ----
         with open(local_json, "r") as f:
             analysis = json.load(f)
+        
+        # ---- ML prediction (supplementary) ----
+        try:
+            analysis["ml"] = predict_posture(analysis["feature_vector"])
+        except Exception as e:
+            print("[ML] Prediction failed:", e)
+            analysis["ml"] = {
+                "error": "ml_prediction_failed"
+            }
+
 
         # ---- Generate personalized advice (CORRECT ORDER) ----
         metrics = analysis.get("metrics", {})
@@ -257,6 +269,9 @@ def history():
             "instrument": analysis.get("instrument"),
             "overallScore": analysis.get("overall_score"),
             "poseCoverage": (analysis.get("metrics") or {}).get("pose_coverage"),
+            "mlLabel": analysis.get("ml", {}).get("label"),
+            "mlConfidence": analysis.get("ml", {}).get("confidence"),
+
         })
 
     rows.sort(key=lambda r: r["createdAt"] or "", reverse=True)
