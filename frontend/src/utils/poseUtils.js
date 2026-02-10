@@ -1,5 +1,9 @@
 import { POSE_LANDMARKS } from "@mediapipe/pose";
 
+/**
+ * Landmark groups used to verify visibility
+ * Allows either side of the body to be sufficient
+ */
 const leftSideLandmarks = [
   POSE_LANDMARKS.LEFT_HIP,
   POSE_LANDMARKS.LEFT_SHOULDER,
@@ -12,6 +16,10 @@ const rightSideLandmarks = [
   POSE_LANDMARKS.RIGHT_KNEE
 ];
 
+/**
+ * Checks whether all required landmarks on one side are visible
+ * Uses MediaPipe visibility confidence to reject partial frames
+ */
 function isSideVisible(landmarks, sideLandmarks) {
   return sideLandmarks.every(index => {
     const lm = landmarks[index];
@@ -19,6 +27,10 @@ function isSideVisible(landmarks, sideLandmarks) {
   });
 }
 
+/**
+ * Validates pose completeness
+ * Requires at least one full side of the body
+ */
 export function checkRequiredLandmarks(landmarks) {
   if (!landmarks) return false;
 

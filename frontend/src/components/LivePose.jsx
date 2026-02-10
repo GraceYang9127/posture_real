@@ -6,11 +6,14 @@ import * as mpPose from "@mediapipe/pose";
 import { checkRequiredLandmarks } from "../utils/poseUtils";
 
 /**
- * Tunables — these matter
+ * Tunable parameters to control responsiveness vs stability of posture
+ * Chosen empirically to balance noise and latency
  */
-const SMOOTHING_WINDOW = 3;        // ~0.5s
+const SMOOTHING_WINDOW = 3;        // Rolling average window (~0.5s)
 const GOOD_TORSO_DEVIATION = 6;    // degrees from baseline
-const STATE_THRESHOLD = 1;          // hysteresis strength
+const STATE_THRESHOLD = 1;          // Strength for posture state (good/bad)
+
+// Landmark indices for torso angle calculation
 const LEFT_SHOULDER = 11;
 const RIGHT_SHOULDER = 12;
 const LEFT_HIP = 23;
@@ -21,11 +24,12 @@ export default function LivePose({ onStream }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Buffers for smoothing
+  // Buffers for smoothing torso angle (noise reduction)
   const torsoBuffer = useRef([]);
+  // Baseline posture captured once the user is stable
   const baselineTorso = useRef(null);
 
-  // Posture state memory
+  // Posture state memory (prevents flickering)
   const postureScore = useRef(0);
   const postureState = useRef("bad");
 
@@ -33,6 +37,10 @@ export default function LivePose({ onStream }) {
     let camera = null;
     let pose = null;
 
+    /**
+     * Initialize Mediapipe Pose
+     * Kept local to this component to isolate real-time logic
+     */
     pose = new Pose({
       locateFile: (file) =>
         new URL(
@@ -47,14 +55,19 @@ export default function LivePose({ onStream }) {
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
     });
-
+    // Async callback - called once per processed frame
     pose.onResults(onResults);
 
+    /**
+     * Camera setup
+     * Raw video stream is used as a data source, all rendering happens on the canvas
+     */
     const startCamera = async () => {
       if (!videoRef.current) return;
 
       camera = new Camera(videoRef.current, {
         onFrame: async () => {
+          // Guard against unitialized video frames
           if (
             !videoRef.current ||
             videoRef.current.videoWidth === 0 ||
@@ -62,13 +75,14 @@ export default function LivePose({ onStream }) {
           ) {
             return;
           }
+          // Send current frame into pose pipeline
           await pose.send({ image: videoRef.current });
         },
       });
 
       await camera.start();
 
-      // Capture canvas stream for recording
+      // Expose canvas stream (used elsewhere)
       if (canvasRef.current && onStream) {
         onStream(canvasRef.current.captureStream(30));
       }
@@ -76,6 +90,10 @@ export default function LivePose({ onStream }) {
 
     startCamera().catch(console.error);
 
+    /**
+     * Cleanup
+     * Ensures camera, pose model, media tracks are released when component unmounts
+     */
     return () => {
       camera?.stop();
       pose?.close();
@@ -83,13 +101,20 @@ export default function LivePose({ onStream }) {
       stream?.getTracks?.().forEach((t) => t.stop());
     };
   }, [onStream]);
-
+  /**
+   * 
+   * Rolling average smoother
+   * Used to stabilize posture signals before classification 
+   */
   function smooth(buffer, value) {
     buffer.push(value);
     if (buffer.length > SMOOTHING_WINDOW) buffer.shift();
     return buffer.reduce((a, b) => a + b, 0) / buffer.length;
   }
 
+  /**
+   * Computes the torso lean angle relative to vertical, using midpoints of shoulders and hips to reduce asymmetry noise. 
+   */
   function computeTorsoAngle(landmarks) {
     if (!landmarks || landmarks.length < 25) return null;
 
@@ -118,7 +143,11 @@ export default function LivePose({ onStream }) {
     return Math.abs((Math.atan2(dx, dy) * 180) / Math.PI);
   }
 
-
+  /**
+   * Main render + inference loop
+   * Runs asynchronously for each processed video frame
+   * Draws results and posture feedback on posture canvas, separate from raw video feed to prevent flickering
+   */
   function onResults(results) {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -127,10 +156,11 @@ export default function LivePose({ onStream }) {
     ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw camera image
+    // Draw camera image as background
     ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
     if (results.poseLandmarks) {
+      // Visualize skeleton
       drawConnectors(ctx, results.poseLandmarks, mpPose.POSE_CONNECTIONS, {
         color: "#00FF00",
         lineWidth: 4,
@@ -142,7 +172,8 @@ export default function LivePose({ onStream }) {
 
       const valid = checkRequiredLandmarks(results.poseLandmarks);
       ctx.font = "24px Arial";
-
+      
+      // Defensive guard: partial body in frame
       if (!valid) {
         ctx.fillStyle = "yellow";
         ctx.fillText("Please have full body in view", 20, 40);
@@ -154,7 +185,7 @@ export default function LivePose({ onStream }) {
           ctx.restore();
           return;
         }
-
+        //Smoothed torso angle
         const torso = smooth(torsoBuffer.current, rawTorso);
 
 
@@ -163,26 +194,30 @@ export default function LivePose({ onStream }) {
           baselineTorso.current = torso;
         }
 
-        let isGood = false;
+        let isGoodStable = false;
+        let isGoodInstant = false
         if (baselineTorso.current !== null) {
+          // Instantaneous signal (responsive UI)
           const deviation = Math.abs(torso - baselineTorso.current);
 
           const rawDeviation = Math.abs(rawTorso - baselineTorso.current);
-          const isGoodInstant = rawDeviation < GOOD_TORSO_DEVIATION;
+          isGoodInstant = rawDeviation < GOOD_TORSO_DEVIATION;
 
-
+          //Smoothed signal (stable classification)
           const smoothDeviation = Math.abs(torso - baselineTorso.current);
-          const isGoodStable = smoothDeviation < GOOD_TORSO_DEVIATION;
+          isGoodStable = smoothDeviation < GOOD_TORSO_DEVIATION;
 
         }
 
-        // Hysteresis
+        // Hysteresis-based state update
+        //Prevents posture state from oscillating due to noise
+
         postureScore.current += isGoodStable ? 1 : -1;
         postureScore.current = Math.max(-3, Math.min(3, postureScore.current));
 
         if (postureScore.current >= STATE_THRESHOLD) postureState.current = "good";
         if (postureScore.current <= -STATE_THRESHOLD) postureState.current = "bad";
-
+        // Render feedback based on instantaneous signal
         ctx.fillStyle = isGoodInstant ? "green" : "red";
         ctx.fillText(
           isGoodInstant ? "Good posture" : "Back bent",
