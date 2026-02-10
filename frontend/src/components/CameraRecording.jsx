@@ -3,20 +3,33 @@ import { uploadFile } from "../utils/uploadFile";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
+/**
+ * Handles recording in rendered canvas OR uploading a local video file
+ * Intentionally separate from live pose
+ */
 export default function CameraRecording({ stream }) {
+  //MediaRecorder instance, lives across renders
   const mediaRecorderRef = useRef(null);
+  //Stores encoded video chunks during recording
   const chunksRef = useRef([]);
+  //Tracks recording duration independently of MediaRecorder
   const timerRef = useRef(null);
+  //UI/lifecycle state
   const [videoTitle, setVideoTitle] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [status, setStatus] = useState("");
   const [recordSeconds, setRecordSeconds] = useState(0);
+  //User context, used later for metadata
   const [instrument, setInstrument] = useState(null);
   const [instrumentLoaded, setInstrumentLoaded] = useState(false);
 
   /* ---------- Load default instrument ---------- */
+  /**
+   * Fetch user's default instrument from Firestore
+   * Runs independently of recording logic
+   */
   useEffect(() => {
     const auth = getAuth();
 
@@ -51,6 +64,10 @@ export default function CameraRecording({ stream }) {
 
 
   /* ---------- Media recorder setup ---------- */
+  /**
+   * Selects the best supported recording format for the browser
+   * Computed once and reused
+   */
   const mimeType = useMemo(() => {
     const candidates = [
       "video/webm;codecs=vp9",
@@ -62,13 +79,16 @@ export default function CameraRecording({ stream }) {
     }
     return "";
   }, []);
-
+  /**
+   * Begins recording the canvas stream
+   * no data leaves the browser at this stage
+   */
   const startRecording = () => {
     if (!stream) {
       setStatus("No camera stream yet. Allow camera permissions first.");
       return;
     }
-
+    // Reset recording state
     setRecordSeconds(0);
     timerRef.current = setInterval(() => {
       setRecordSeconds((s) => s + 1);
@@ -82,8 +102,9 @@ export default function CameraRecording({ stream }) {
     chunksRef.current = [];
 
     try {
+      // mediarecorder encodes frames locally in the browser
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-
+      //Finalize recording into a single blob
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
@@ -106,7 +127,9 @@ export default function CameraRecording({ stream }) {
       setStatus("Failed to start recording.");
     }
   };
-
+  /**
+   * Stops recording and finalizes the in-memory video
+   */
   const stopRecording = () => {
     const recorder = mediaRecorderRef.current;
     if (!recorder) return;
@@ -116,14 +139,19 @@ export default function CameraRecording({ stream }) {
     timerRef.current = null;
     setIsRecording(false);
   };
-
+  /**
+   * Discards the current recording and releases memory
+   */
   const deleteRecording = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl("");
     setRecordedBlob(null);
     setStatus("Deleted.");
   };
-
+  /**
+   * Uploads the finalized video and triggers the backend analysis.
+   * First point where data leaves the browser
+   */
   const uploadRecording = async () => {
     if (!recordedBlob) return;
 
@@ -146,7 +174,7 @@ export default function CameraRecording({ stream }) {
 
 
     setStatus("Uploading & analyzing...");
-
+    //Convert Blob into File to preserve metadata
     const extension = recordedBlob.type.includes("webm") ? "webm" : "video";
     const filename = `recording-${Date.now()}.${extension}`;
     const file = new File([recordedBlob], filename, {
