@@ -109,6 +109,14 @@ def create_download_url():
 # ---------- UPLOAD URL ----------
 @app.route("/api/upload-url", methods=["POST"])
 def create_upload_url():
+    """
+    Issues a short-lived presigned S3 upload URL
+
+    Backend: 
+    - Validates request metadata
+    - Determines correct S3 object path
+    - Never recieves the file directly
+    """
     data = request.json or {}
     user_id = data.get("userId")
     filename = data.get("filename")
@@ -116,10 +124,11 @@ def create_upload_url():
 
     if not user_id or not filename or not content_type:
         return jsonify({"error": "Missing fields"}), 400
-
+    #generate unique Id for video
     video_id = str(uuid.uuid4())
+    #Store videos in user-scoped namespaces
     object_key = f"videos/{user_id}/{video_id}_{filename}"
-
+    # Presigned URL allows client to PUT directly into S3
     upload_url = s3.generate_presigned_url(
         "put_object",
         Params={
@@ -138,15 +147,21 @@ def create_upload_url():
 
 # ---------- BACKGROUND ANALYSIS ----------
 def run_analysis_async(user_id, s3_key, instrument, title):
+    """
+    Background worker that 
+    - Downloads video from S3
+    - Runs pose + ML analysis
+    - Stores results back in S3
+    """
     try:
-        # ---- Temp files ----
+        # Temp local paths
         local_video = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.mp4")
         local_json = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.json")
 
-        # ---- Download video ----
+        # Download uploaded video from S3
         s3.download_file(AWS_BUCKET, s3_key, local_video)
 
-        # ---- Run analysis script ----
+        # Run analysis script (pose extraction)
         script_path = os.path.join(
             os.path.dirname(__file__),
             "analysis",
@@ -158,11 +173,11 @@ def run_analysis_async(user_id, s3_key, instrument, title):
             check=True,
         )
 
-        # ---- Derive IDs ----
+        # Derive analysis storage key
         video_id = s3_key.split("/")[-1].split("_")[0]
         analysis_key = f"analysis/{user_id}/{video_id}.json"
 
-        # ---- Load analysis output ----
+        # Load analysis output
         with open(local_json, "r") as f:
             analysis = json.load(f)
         
@@ -220,6 +235,14 @@ def run_analysis_async(user_id, s3_key, instrument, title):
 # ---------- START ANALYSIS ----------
 @app.route("/api/analyze-after-upload", methods=["POST"])
 def analyze_after_upload():
+    """
+    Triggered after a successful S3 upload
+
+    This endpoint: 
+    - Records metadata
+    - Launches analysis asynchronously
+    - Returns immediately
+    """
     data = request.json or {}
     user_id = data.get("userId")
     s3_key = data.get("s3Key")
@@ -228,13 +251,13 @@ def analyze_after_upload():
 
     if not user_id or not s3_key:
         return jsonify({"error": "Missing fields"}), 400
-
+    # Run analysis in a background thread
     threading.Thread(
         target=run_analysis_async,
         args=(user_id, s3_key, instrument, title),
         daemon=True,
     ).start()
-
+    # Respond immediately so frontend remains responsive
     return jsonify({"status": "analysis_started"}), 202
 
 
