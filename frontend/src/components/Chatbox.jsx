@@ -1,19 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "../context/ChatContext";
 
+// A component to manage chat state, sync with backend LLM API
 function ChatBox() {
-  const { messages, setMessages } = useChat(); // 🔑 global chat state
+  //Global chat state, via react context
+  const { messages, setMessages } = useChat();
+  //local UI state 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-
+  //autoscroll
   const bottomRef = useRef(null);
-
-  // Auto-scroll to bottom when messages change
+  //autoscroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const sendMessage = async () => {
+    //Prevents empty messages
     if (!input.trim() || loading) return;
 
     const userMessage = { role: "user", content: input };
@@ -24,6 +27,7 @@ function ChatBox() {
     setLoading(true);
 
     try {
+      //Send conversation context to backend API
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/chat`,
         {
@@ -34,7 +38,7 @@ function ChatBox() {
       );
 
       const data = await response.json();
-
+      // Append AI response to chat
       if (response.ok && data.reply) {
         setMessages((prev) => [
           ...prev,
@@ -48,7 +52,7 @@ function ChatBox() {
             content: "Sorry — something went wrong getting a response.",
           },
         ]);
-      }
+      } //Handle any network level errors
     } catch (err) {
       console.error(err);
       setMessages((prev) => [

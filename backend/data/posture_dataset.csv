@@ -1,7 +1,7 @@
 head_dev_deg,torso_dev_deg,stability_std_dev_deg,pose_coverage_sampled,session_duration_sec,label,source_file,overall_score
-74.787345,20.896532,4.446474,1.0,4.066667,Risky,posture_14.json,14.0
-28.508046,3.529432,6.468699,1.0,5.4,Risky,posture_38a.json,38.0
-41.114463,7.814987,3.423288,1.0,4.166667,Risky,posture_38b.json,38.0
+74.787345,20.896532,4.446474,1.0,4.066667,Bad,posture_14.json,14.0
+28.508046,3.529432,6.468699,1.0,5.4,Bad,posture_38a.json,38.0
+41.114463,7.814987,3.423288,1.0,4.166667,Bad,posture_38b.json,38.0
 18.892791,0.694368,5.232262,1.0,6.6066,Okay,posture_55.json,55.0
 6.080718,1.178907,10.307013,1.0,27.0,Okay,posture_63.json,63.0
 4.280214,1.087993,2.984003,1.0,65.766667,Good,posture_84.json,84.0

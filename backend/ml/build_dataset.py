@@ -18,7 +18,7 @@ FEATURE_KEYS = [
 def normalize_label(raw: str):
     """
     Collapse labels into stable classes.
-    We keep it simple: Good / Okay / Risky.
+    We keep it simple: Good / Okay / Bad.
     """
     if not raw:
         return None
@@ -27,8 +27,8 @@ def normalize_label(raw: str):
         return "Good"
     if raw in ("okay", "average"):
         return "Okay"
-    if raw in ("risky",):
-        return "Risky"
+    if raw in ("bad",):
+        return "Bad"
     return None  # Unknown or anything else
 
 rows = []
