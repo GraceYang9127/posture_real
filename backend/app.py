@@ -76,6 +76,14 @@ def chat():
 # ---------- DOWNLOAD URL ----------
 @app.route("/api/download-url", methods=["POST", "OPTIONS"])
 def create_download_url():
+    """
+    Issues a presigned download URL for S3 objects
+
+    Ensures: 
+    - Users can only access their own videos and analyses
+    - Frontend downloads files directly from S3
+    - Backend remains stateless
+    """
     if request.method == "OPTIONS":
         return "", 200
 
@@ -154,7 +162,7 @@ def run_analysis_async(user_id, s3_key, instrument, title):
     - Stores results back in S3
     """
     try:
-        # Temp local paths
+        # Create temporary local paths for processing
         local_video = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.mp4")
         local_json = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.json")
 
@@ -195,7 +203,7 @@ def run_analysis_async(user_id, s3_key, instrument, title):
         metrics = analysis.get("metrics", {})
         analysis["advice"] = generate_advice(metrics)
 
-        # ---- Attach metadata ----
+        # Attach metadata for downstream use
         analysis.update({
             "title": title or "Untitled Video",
             "videoKey": s3_key,
@@ -239,9 +247,9 @@ def analyze_after_upload():
     Triggered after a successful S3 upload
 
     This endpoint: 
-    - Records metadata
+    - Records metadata (no video data)
     - Launches analysis asynchronously
-    - Returns immediately
+    - Returns immediately, to not block frontend
     """
     data = request.json or {}
     user_id = data.get("userId")
@@ -264,6 +272,13 @@ def analyze_after_upload():
 # ---------- HISTORY ----------
 @app.route("/api/history", methods=["POST"])
 def history():
+    """
+    Returns a user's analysis hsitory
+
+    - Lists analysis JSON file in S3
+    - Extracts lightweight metadata only
+    - Avoids sending large files to the client
+    """
     data = request.json or {}
     user_id = data.get("userId")
     if not user_id:
