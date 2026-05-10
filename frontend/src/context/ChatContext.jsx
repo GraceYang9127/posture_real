@@ -1,21 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 const ChatContext = createContext();
 
 export function ChatProvider({ children }) {
-  const [messages, setMessages] = useState(() => {
-    try {
-      const saved = localStorage.getItem("posturemind_chat");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Persist to localStorage
-  useEffect(() => {
-    localStorage.setItem("posturemind_chat", JSON.stringify(messages));
-  }, [messages]);
+  // Session-only: messages persist across route changes within the SPA
+  // (provider is mounted at the root in main.jsx) but reset on full reload.
+  const [messages, setMessages] = useState([]);
 
   return (
     <ChatContext.Provider value={{ messages, setMessages }}>
